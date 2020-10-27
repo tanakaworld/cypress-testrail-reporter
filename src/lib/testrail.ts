@@ -8,8 +8,9 @@ export class TestRail {
   private includeAll: Boolean = true;
   private caseIds: Number[] = [];
 
-  constructor(private options: TestRailOptions) {
+  constructor(private options: TestRailOptions, runId: Number = null) {
     this.base = `https://${options.domain}/index.php?/api/v2`;
+    this.runId = runId;
   }
 
   public getCases () {
@@ -30,27 +31,34 @@ export class TestRail {
     if (this.options.includeAllInTestRun === false){
       this.includeAll = false;
       this.caseIds =  await this.getCases();
-    }  
-    axios({
-      method: 'post',
-      url: `${this.base}/add_run/${this.options.projectId}`,
-      headers: { 'Content-Type': 'application/json' },
-      auth: {
-        username: this.options.username,
-        password: this.options.password,
-      },
-      data: JSON.stringify({
-        suite_id: this.options.suiteId,
-        name,
-        description,
-        include_all: this.includeAll,
-        case_ids: this.caseIds
-      }),
-    })
-      .then(response => {
-        this.runId = response.data.id;
+    }
+
+    return new Promise<Number>((resolve ,reject) => {
+      axios({
+        method: 'post',
+        url: `${this.base}/add_run/${this.options.projectId}`,
+        headers: { 'Content-Type': 'application/json' },
+        auth: {
+          username: this.options.username,
+          password: this.options.password,
+        },
+        data: JSON.stringify({
+          suite_id: this.options.suiteId,
+          name,
+          description,
+          include_all: this.includeAll,
+          case_ids: this.caseIds
+        }),
       })
-      .catch(error => console.error(error));
+          .then(response => {
+            this.runId = response.data.id;
+            resolve(this.runId);
+          })
+          .catch(error => {
+            console.error(error)
+            reject(error);
+          });
+    });
   }
 
   public deleteRun() {
@@ -101,5 +109,9 @@ export class TestRail {
     })
       .then(() => console.log('- Test run closed successfully'))
       .catch(error => console.error(error));
+  }
+
+  public hasTestRun() {
+    return this.runId !== null;
   }
 }
