@@ -38,11 +38,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var axios = require('axios');
 var chalk = require('chalk');
 var TestRail = /** @class */ (function () {
-    function TestRail(options) {
+    function TestRail(options, runId) {
+        if (runId === void 0) { runId = null; }
         this.options = options;
         this.includeAll = true;
         this.caseIds = [];
         this.base = "https://" + options.domain + "/index.php?/api/v2";
+        this.runId = runId;
     }
     TestRail.prototype.getCases = function () {
         return axios({
@@ -71,28 +73,32 @@ var TestRail = /** @class */ (function () {
                     case 1:
                         _a.caseIds = _b.sent();
                         _b.label = 2;
-                    case 2:
-                        axios({
-                            method: 'post',
-                            url: this.base + "/add_run/" + this.options.projectId,
-                            headers: { 'Content-Type': 'application/json' },
-                            auth: {
-                                username: this.options.username,
-                                password: this.options.password,
-                            },
-                            data: JSON.stringify({
-                                suite_id: this.options.suiteId,
-                                name: name,
-                                description: description,
-                                include_all: this.includeAll,
-                                case_ids: this.caseIds
-                            }),
-                        })
-                            .then(function (response) {
-                            _this.runId = response.data.id;
-                        })
-                            .catch(function (error) { return console.error(error); });
-                        return [2 /*return*/];
+                    case 2: return [2 /*return*/, new Promise(function (resolve, reject) {
+                            axios({
+                                method: 'post',
+                                url: _this.base + "/add_run/" + _this.options.projectId,
+                                headers: { 'Content-Type': 'application/json' },
+                                auth: {
+                                    username: _this.options.username,
+                                    password: _this.options.password,
+                                },
+                                data: JSON.stringify({
+                                    suite_id: _this.options.suiteId,
+                                    name: name,
+                                    description: description,
+                                    include_all: _this.includeAll,
+                                    case_ids: _this.caseIds
+                                }),
+                            })
+                                .then(function (response) {
+                                _this.runId = response.data.id;
+                                resolve(_this.runId);
+                            })
+                                .catch(function (error) {
+                                console.error(error);
+                                reject(error);
+                            });
+                        })];
                 }
             });
         });
@@ -138,6 +144,9 @@ var TestRail = /** @class */ (function () {
         })
             .then(function () { return console.log('- Test run closed successfully'); })
             .catch(function (error) { return console.error(error); });
+    };
+    TestRail.prototype.hasTestRun = function () {
+        return this.runId !== null;
     };
     return TestRail;
 }());
