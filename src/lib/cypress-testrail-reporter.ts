@@ -5,6 +5,13 @@ import { titleToCaseIds } from './shared';
 import { Status, TestRailResult } from './testrail.interface';
 const chalk = require('chalk');
 
+const Mocha = require('mocha');
+const {
+  EVENT_RUN_BEGIN,
+  EVENT_RUN_END,
+  EVENT_TEST_FAIL,
+  EVENT_TEST_PASS,
+} = Mocha.Runner.constants;
 export class CypressTestRailReporter extends reporters.Spec {
   private results: TestRailResult[] = [];
   private testRail: TestRail;
@@ -20,14 +27,14 @@ export class CypressTestRailReporter extends reporters.Spec {
     this.validate(reporterOptions, 'projectId');
     this.validate(reporterOptions, 'suiteId');
 
-    runner.on('start', () => {
+    runner.on(EVENT_RUN_BEGIN, async () => {
       const executionDateTime = moment().format('MMM Do YYYY, HH:mm (Z)');
       const name = `${reporterOptions.runName || 'Automated test run'} ${executionDateTime}`;
       const description = 'For the Cypress run visit https://dashboard.cypress.io/#/projects/runs';
       this.testRail.createRun(name, description);
     });
 
-    runner.on('pass', test => {
+    runner.on(EVENT_TEST_PASS, test => {
       const caseIds = titleToCaseIds(test.title);
       if (caseIds.length > 0) {
         const results = caseIds.map(caseId => {
@@ -41,7 +48,7 @@ export class CypressTestRailReporter extends reporters.Spec {
       }
     });
 
-    runner.on('fail', test => {
+    runner.on(EVENT_TEST_FAIL, test => {
       const caseIds = titleToCaseIds(test.title);
       if (caseIds.length > 0) {
         const results = caseIds.map(caseId => {
@@ -55,7 +62,7 @@ export class CypressTestRailReporter extends reporters.Spec {
       }
     });
 
-    runner.on('end', () => {
+    runner.on(EVENT_RUN_END, () => {
       if (this.results.length == 0) {
         console.log('\n', chalk.magenta.underline.bold('(TestRail Reporter)'));
         console.warn(
