@@ -21,6 +21,12 @@ export class CypressTestRailReporter extends reporters.Spec {
 
     let reporterOptions = options.reporterOptions;
     this.testRail = new TestRail(reporterOptions);
+    // Overwrite password with token in env.
+    // It is required to hard code a password or token in cypress.json by default.
+    if (process.env.CYPRESS_TESTRAIL_API_KEY) {
+      console.log('  Using token in process.env.CYPRESS_TESTRAIL_API_KEY');
+      reporterOptions['password'] = process.env.CYPRESS_TESTRAIL_API_KEY;
+    }
     this.validate(reporterOptions, 'domain');
     this.validate(reporterOptions, 'username');
     this.validate(reporterOptions, 'password');
